@@ -813,6 +813,15 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
 
     private File getOutputFile(int type, File storageDir) {
         // Create the storage directory if it does not exist
+        File newStorageDir = new File(storageDir, mRecordingOptions.getString('diskDirectory'));
+
+        if (!newStorageDir.exists()) {
+            if (!newStorageDir.mkdirs()) {
+                Log.e(TAG, "failed to create new directory:" + newStorageDir.getAbsolutePath());
+                return null;
+            }
+        }
+
         if (!storageDir.exists()) {
             if (!storageDir.mkdirs()) {
                 Log.e(TAG, "failed to create directory:" + storageDir.getAbsolutePath());
