@@ -43,7 +43,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 public class RCTCameraModule extends ReactContextBaseJavaModule
-    implements MediaRecorder.OnInfoListener, MediaRecorder.OnErrorListener, LifecycleEventListener {
+        implements MediaRecorder.OnInfoListener, MediaRecorder.OnErrorListener, LifecycleEventListener {
     private static final String TAG = "RCTCameraModule";
 
     public static final int RCT_CAMERA_ASPECT_FILL = 0;
@@ -97,7 +97,7 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
     }
 
     public static ReactApplicationContext getReactContextSingleton() {
-      return _reactContext;
+        return _reactContext;
     }
 
     /**
@@ -311,7 +311,7 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
                 break;
             default:
             case RCT_CAMERA_CAPTURE_TARGET_DISK:
-                mVideoFile = getOutputMediaFile(MEDIA_TYPE_VIDEO);
+                mVideoFile = getOutputMediaFile(MEDIA_TYPE_VIDEO, options);
                 break;
         }
         if (mVideoFile == null) {
@@ -632,6 +632,7 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
     }
 
     private void captureWithOrientation(final ReadableMap options, final Promise promise, int deviceOrientation) {
+
         Camera camera = RCTCamera.getInstance().acquireCameraInstance(options.getInt("type"));
         if (null == camera) {
             promise.reject("No camera found.");
@@ -701,7 +702,7 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
                         break;
                     }
                     case RCT_CAMERA_CAPTURE_TARGET_DISK: {
-                        File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
+                        File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE, options);
                         if (pictureFile == null) {
                             promise.reject("Error creating media file.");
                             return;
@@ -742,12 +743,12 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
         };
 
         if(mSafeToCapture) {
-          try {
-            camera.takePicture(null, null, captureCallback);
-            mSafeToCapture = false;
-          } catch(RuntimeException ex) {
-              Log.e(TAG, "Couldn't capture photo.", ex);
-          }
+            try {
+                camera.takePicture(null, null, captureCallback);
+                mSafeToCapture = false;
+            } catch(RuntimeException ex) {
+                Log.e(TAG, "Couldn't capture photo.", ex);
+            }
         }
     }
 
@@ -786,7 +787,7 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
         return null;
     }
 
-    private File getOutputMediaFile(int type) {
+    private File getOutputMediaFile(int type, ReadableMap options) {
         // Get environment directory type id from requested media type.
         String environmentDirectoryType;
         if (type == MEDIA_TYPE_IMAGE) {
@@ -798,10 +799,22 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
             return null;
         }
 
-        return getOutputFile(
-                type,
-                Environment.getExternalStoragePublicDirectory(environmentDirectoryType)
-        );
+        File externalStorageDirectory = Environment.getExternalStoragePublicDirectory(environmentDirectoryType);
+
+        if(options.hasKey("diskDirectory")) {
+            File newStorageDir = new File(externalStorageDirectory, options.getString("diskDirectory"));
+            return getOutputFile(
+                    type,
+                    newStorageDir
+            );
+        }
+        else {
+            return getOutputFile(
+                    type,
+                    externalStorageDirectory
+            );
+        }
+
     }
 
     private File getOutputCameraRollFile(int type) {
@@ -813,14 +826,6 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
 
     private File getOutputFile(int type, File storageDir) {
         // Create the storage directory if it does not exist
-        File newStorageDir = new File(storageDir, mRecordingOptions.getString('diskDirectory'));
-
-        if (!newStorageDir.exists()) {
-            if (!newStorageDir.mkdirs()) {
-                Log.e(TAG, "failed to create new directory:" + newStorageDir.getAbsolutePath());
-                return null;
-            }
-        }
 
         if (!storageDir.exists()) {
             if (!storageDir.mkdirs()) {
